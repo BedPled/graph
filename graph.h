@@ -344,7 +344,11 @@ public:
             std::cout << "graph is empty" << std::endl;
         } else {
             while (thisNode != nullptr) {
-                std::cout << "|" << thisNode->number << "| D(" << thisNode->p << ") | -> ";
+                std::cout << "|" << thisNode->number << "| D(";
+                //<< thisNode->p
+                if (thisNode->p == nullptr) std::cout << "undefined";
+                else std::cout << thisNode->p->number;
+                std::cout << ") | -> ";
                 thisArc = thisNode->arcs;
 
                 while (thisArc != nullptr) {
@@ -369,7 +373,7 @@ public:
         node *curNode = root;
 
         while (curNode != nullptr) {
-            curNode->d = INT16_MAX;
+            curNode->d = INT32_MAX;
             curNode->p = nullptr;
             curNode = curNode->nextNode;
         }
@@ -377,10 +381,10 @@ public:
         s->d = 0;
     }
 
-    void relax (node *u, node *v, int w) {
-        if (v->d >= u->d + w) {
-            v->d = u->d + w;
-            v->p = u;
+    void chill (node *u, arc *a) {
+        if (a->node_->d >= u->d + a->weight) {
+            a->node_->d = u->d + a->weight;
+            a->node_->p = u;
         }
     }
 
@@ -395,8 +399,104 @@ public:
         return count;
     }
 
-    void DIJKSTRA() {
+    bool isEmpty(node *Q[], int count) {
+        for (int i = 0; i < count; ++i) {
+            if (Q[i] != nullptr) return false;
+        }
+        return true;
+    }
+
+    node *extractMin(node *Q[], int count) {
+        node *min_node = new node;
+        min_node->d = INT32_MAX;
+        int c = -1;
+
+        if(!isEmpty(Q,count)) {
+            for (int i = 0; i < count; ++i) {
+                if (Q[i] == nullptr) {
+                    continue;
+                }
+
+                if (Q[i]->d < min_node->d) {
+                    min_node = Q[i];
+                    c = i;
+                }
+            }
+        }
+
+        Q[c] = nullptr;
+
+        return min_node;
+    }
+
+
+
+    void DIJKSTRA(int a) {
         int count = countNode();
+        //int countQ = count;
+        int countS = 0;
+
+        node *S[count];
+        node *Q[count];
+
+        node *u = nullptr;
+
+        node *curNode = root;
+
+        while (curNode != nullptr && curNode->number != a) {
+            curNode = curNode->nextNode;
+        }
+
+        if (curNode == nullptr) {
+            std::cout << "Вы кто такие? Идите нахуй! Я вас не звал!!!" << std::endl;
+            return;
+        }
+
+        ISS(curNode);
+
+        node *helpNode = root;
+
+        // инициализация Q и S
+        for (int i = 0; i < count; ++i) {
+            S[i] = nullptr;
+            Q[i] = helpNode;
+            helpNode = helpNode->nextNode;
+        }
+
+        while (!isEmpty(Q, count)) {
+            u = extractMin(Q,count);
+            S[countS] = u;
+            countS++;
+
+            // для каждого ребра U помечаем вершины как достижимые за определённо расстояние
+
+            // 1. узнать сколько у нас рёбер из U
+            //
+            arc *curArc = u->arcs;
+            while (curArc != nullptr) {
+                // relax()
+                chill(u, curArc);
+                curArc = curArc->next;
+            }
+
+        }
+
+
+
+
+
+
+    };
+
+
+};
+
+
+#endif //GRAPH_GRAPH_H
+
+
+/*
+ *         int count = countNode();
         int countQ = count;
         int countS = 0;
         node **S = new node* [count];
@@ -463,10 +563,4 @@ public:
 
         }
 
-    };
-
-
-};
-
-
-#endif //GRAPH_GRAPH_H
+ * */
