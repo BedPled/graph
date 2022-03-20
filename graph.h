@@ -13,11 +13,17 @@ struct node { // вершина графа
     node* nextNode; // следующая вершина
     arc* arcs; // ссылка на список дуг
 
-    // для дейкстры
+    // для обхода
+    int ND = 0;
+    int KD = 0;
+//    node *MD = nullptr;
+
+    // для BF
     int d = INT16_MAX;
     node *p = nullptr;
 
     node() {
+        number = -1;
         nextNode = nullptr;
         arcs = nullptr;
     }
@@ -335,6 +341,7 @@ public:
             return true;
         } else return false;
     }
+
     //Печать графа
     void print(){
         node *thisNode = root;
@@ -344,11 +351,21 @@ public:
             std::cout << "graph is empty" << std::endl;
         } else {
             while (thisNode != nullptr) {
-                std::cout << "|" << thisNode->number << "| D(";
-                //<< thisNode->p
+                std::cout << "|" << thisNode->number;
+                if (thisNode->p == nullptr) std::cout << "undefined";
+                else std::cout << thisNode->p->ND;
+               std::cout << " | ";
+
+                std::cout << "| D(";
+                std::cout << thisNode->d;
+                std::cout << ")";
+
+                std::cout << "| BF(";
                 if (thisNode->p == nullptr) std::cout << "undefined";
                 else std::cout << thisNode->p->number;
-                std::cout << ") | -> ";
+                std::cout << ") |";
+                std::cout << " -> ";
+
                 thisArc = thisNode->arcs;
 
                 while (thisArc != nullptr) {
@@ -361,19 +378,11 @@ public:
         }
     };
 
-    //Обход ()
-
-
-    //Алгоритм ()
-
-
-    // дейкстра
-
     void ISS (node *s) {
         node *curNode = root;
 
         while (curNode != nullptr) {
-            curNode->d = INT32_MAX;
+            curNode->d = INT16_MAX;
             curNode->p = nullptr;
             curNode = curNode->nextNode;
         }
@@ -382,7 +391,7 @@ public:
     }
 
     void chill (node *u, arc *a) {
-        if (a->node_->d >= u->d + a->weight) {
+        if (a->node_->d > u->d + a->weight) {
             a->node_->d = u->d + a->weight;
             a->node_->p = u;
         }
@@ -399,7 +408,144 @@ public:
         return count;
     }
 
-    bool isEmpty(node *Q[], int count) {
+    int countArc(node *in) {
+        arc *curArc = in->arcs;
+        int count = 0;
+
+            while (curArc != nullptr) {
+                count++;
+                curArc = curArc->next;
+            }
+
+        return count;
+    }
+
+    arc* nodeIndex(node *a, int index) { // возвращаем вершину по индексу. считаем с 1
+        arc *curArc = a->arcs;
+
+        for (int i = 1; i <= index; ++i) {
+            if (i == index) {
+                return curArc;
+            }
+            curArc = curArc->next;
+        }
+    }
+
+
+    void deepFirst(int a) {
+
+        node *qwerty = root;
+
+        while (qwerty != nullptr) {
+            qwerty->KD = countArc(qwerty);
+            qwerty = qwerty->nextNode;
+        }
+
+        node *p = root;
+
+        while (p != nullptr && p->number != a) {
+            p = p->nextNode;
+        }
+
+        if (p == nullptr) {
+            std::cout << "Error! Node is null" << std::endl;
+            return;
+        }
+
+        node *q0 = new node(); // фиктивная нода
+        q0->arcs = new arc();
+        q0->arcs->node_ = p;
+        q0->KD = 1;
+        q0->ND = 0;
+
+        node *t = nullptr; // 1
+        node *q = q0; // 2
+        q0->ND = 1; // 3
+        p = nodeIndex(q, 1)->node_; // 3
+
+        L:
+
+        nodeIndex(q, q->ND)->node_ = t; // 4
+        t = q; // 4
+        q = p; // 4
+
+        L1:
+        if (q != nullptr) {
+            while (q->ND < q->KD) { // 6
+                if (q->ND == 0) { std::cout << q->number << " - "; }
+
+                q->ND = q->ND + 1; // 7
+                p = nodeIndex(q, q->ND)->node_; // следующая достижимая вершина
+                if (p != nullptr) {
+                    if (p->ND == 0) {
+                        goto L;
+                    }
+                }
+            }
+        }
+
+
+        if (p != nullptr) {
+            p = q;
+            q = t;
+            if (q != nullptr) {
+                t = nodeIndex(q, q->ND)->node_; // следующая достижимая вершина
+                nodeIndex(q, q->ND)->node_ = p;
+            }
+            goto L1;
+        }
+    }
+
+    bool bellmanFord(int a) {
+        int count = countNode();
+
+        node *curNode = root;
+
+        while (curNode != nullptr && curNode->number != a) {
+            curNode = curNode->nextNode;
+        }
+
+        if (curNode == nullptr) {
+            std::cout << "Error! Node is null" << std::endl;
+            return false;
+        }
+
+        ISS(curNode);
+
+        arc *helpArc = nullptr;
+        node *helpNode = root;
+
+        for (int i = 1; i < count; ++i) {
+            helpArc = nullptr;
+            helpNode = root;
+            while (helpNode != nullptr) { // перебор всех вершин
+                helpArc = helpNode->arcs;
+                while (helpArc != nullptr) { // перебор всех рёбер
+                    chill(helpNode, helpArc);
+                    helpArc = helpArc->next;
+                }
+                helpNode = helpNode->nextNode;
+            }
+        }
+
+        helpArc = nullptr;
+        helpNode = root;
+
+        while (helpNode != nullptr) { // перебор всех вершин
+            helpArc = helpNode->arcs;
+            while (helpArc != nullptr) {
+                if (helpArc->node_->d > helpNode->d + helpArc->weight) {
+                    return false;
+                }
+                helpArc = helpArc->next;
+            }
+            helpNode = helpNode->nextNode;
+        }
+        return true;
+    }
+
+
+        bool isEmpty(node *Q[], int count) {
         for (int i = 0; i < count; ++i) {
             if (Q[i] != nullptr) return false;
         }
@@ -429,8 +575,6 @@ public:
         return min_node;
     }
 
-
-
     void DIJKSTRA(int a) {
         int count = countNode();
         //int countQ = count;
@@ -448,7 +592,7 @@ public:
         }
 
         if (curNode == nullptr) {
-            std::cout << "Вы кто такие? Идите нахуй! Я вас не звал!!!" << std::endl;
+            std::cout << "Я вас не звал!!!" << std::endl;
             return;
         }
 
@@ -481,13 +625,7 @@ public:
 
         }
 
-
-
-
-
-
-    };
-
+    }
 
 };
 
@@ -495,72 +633,3 @@ public:
 #endif //GRAPH_GRAPH_H
 
 
-/*
- *         int count = countNode();
-        int countQ = count;
-        int countS = 0;
-        node **S = new node* [count];
-        node **Q = new node* [count];
-        node *curNode = root;
-        node *u = nullptr;
-        node *v = nullptr;
-
-        for (int i = 0; i < count; ++i) {
-            Q[i] = curNode;
-            curNode = curNode->nextNode;
-        }
-
-
-
-        while (countQ != 0) {
-            u = Q[countQ-1];
-            countQ--;
-
-            S[countS] = u;
-            countS++;
-
-            v = root;
-            for (int i = 0; i < count - 1; ++i) {
-
-                // поиск ребра
-
-                node *nodeA = root;
-                node *nodeB = root;
-                int a = u->number;
-                int b = v->number;
-                bool pupalupa = true;
-
-                while (nodeA != nullptr && nodeA->number != a) {
-                    nodeA = nodeA->nextNode;
-                }
-                while (nodeB != nullptr && nodeB->number != b) {
-                    nodeB = nodeB->nextNode;
-                }
-
-                if (nodeA == nullptr) {
-                    std::cout << "node "<< a <<" not found" << std::endl;
-                    pupalupa =  false;
-                }
-                if (nodeB == nullptr) {
-                    std::cout << "node " << b << " not found" << std::endl;
-                    pupalupa =  false;
-                }
-
-                arc *curArc = nodeA->arcs;
-                arc *lastArc = nullptr;
-
-                while (curArc != nullptr && curArc->node_ != nodeB) { // ищем дугу
-                    lastArc = curArc;
-                    curArc = curArc->next;
-                }
-
-                if (curArc == nullptr) pupalupa = false;
-
-                if (pupalupa && curArc->node_ == nodeB) {
-                    relax(u, v, curArc->weight);
-                }
-            }
-
-        }
-
- * */
